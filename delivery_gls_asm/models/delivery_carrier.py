@@ -1,5 +1,7 @@
 # Copyright 2020 Tecnativa - David Vidal
 # License AGPL-3.0 or later (https://www.gnu.org/licenses/agpl).
+import pytz
+from datetime import datetime
 from odoo import _, fields, models
 from .gls_asm_request import GlsAsmRequest
 from .gls_asm_request import (
@@ -180,6 +182,9 @@ class DeliveryCarrier(models.Model):
             picking.carrier_tracking_ref)
         if not tracking_states:
             return
+        tracking_states = sorted(tracking_states,
+                                 key=lambda k: datetime.strptime(
+                                     k['fecha'], '%d/%m/%Y %H:%M:%S'))
         picking.tracking_state_history = "\n".join([
             "%s - [%s] %s" % (
                 t.get("fecha"), t.get("codigo"), t.get("evento"))
@@ -190,6 +195,16 @@ class DeliveryCarrier(models.Model):
             tracking.get("codigo"), tracking.get("evento"))
         picking.delivery_state = GLS_DELIVERY_STATES_STATIC.get(
             tracking.get("codigo"), 'incidence')
+        if picking.delivery_state == 'customer_delivered':
+            date_format = '%d/%m/%Y %H:%M:%S'
+            local = pytz.timezone(self.env.user.partner_id.tz)
+            naive = datetime.strptime(
+                tracking.get("fecha"), date_format)
+            local_dt = local.localize(naive, is_dst=None)
+            date_delivered = fields.Datetime.to_string(local_dt.astimezone(
+                pytz.utc))
+            picking.write({
+                'date_delivered': date_delivered})
 
     def gls_asm_cancel_shipment(self, pickings):
         """Cancel the expedition"""
