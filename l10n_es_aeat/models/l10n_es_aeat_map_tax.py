@@ -20,18 +20,21 @@ class L10nEsAeatMapTax(models.Model):
     @api.constrains('date_from', 'date_to')
     def _unique_date_range(self):
         for map in self:
-            domain = [('id', '!=', map.id)]
+            domain = [('id', '!=', map.id), ('model', '=', map.model)]
             if map.date_from and map.date_to:
-                domain += ['|', '&',
+                domain += ['|', '|', '|', '|', '&',
                            ('date_from', '<=', map.date_to),
                            ('date_from', '>=', map.date_from),
-                           '|', '&',
+                           '&',
                            ('date_to', '<=', map.date_to),
                            ('date_to', '>=', map.date_from),
-                           '|', '&',
+                           '&',
+                           ('date_from', '<=', map.date_from),
+                           ('date_to', '>=', map.date_to),
+                           '&',
                            ('date_from', '=', False),
                            ('date_to', '>=', map.date_from),
-                           '|', '&',
+                           '&',
                            ('date_to', '=', False),
                            ('date_from', '<=', map.date_to),
                            ]
